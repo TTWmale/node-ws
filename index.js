@@ -1,20 +1,30 @@
 const os = require('os');
 const http = require('http');
 const fs = require('fs');
-const axios = require('axios');
 const net = require('net');
 const { Buffer } = require('buffer');
 const { exec, execSync } = require('child_process');
+function ensureModule(name) {
+    try {
+        require.resolve(name);
+    } catch (e) {
+        // console.log(`Module '${name}' not found. Installing...`);
+        execSync(`npm install ${name}`, { stdio: 'inherit' });
+    }
+}
+ensureModule('axios');
+ensureModule('ws');
+const axios = require('axios');
 const { WebSocket, createWebSocketStream } = require('ws');
 const UUID = process.env.UUID || 'de04add9-5c68-6bab-950c-08cd5320df33'; // 运行哪吒v1,在不同的平台需要改UUID,否则会被覆盖
 const NEZHA_SERVER = process.env.NEZHA_SERVER || '';       // 哪吒v1填写形式：nz.abc.com:8008   哪吒v0填写形式：nz.abc.com
 const NEZHA_PORT = process.env.NEZHA_PORT || '';           // 哪吒v1没有此变量，v0的agent端口为{443,8443,2096,2087,2083,2053}其中之一时开启tls
 const NEZHA_KEY = process.env.NEZHA_KEY || '';             // v1的NZ_CLIENT_SECRET或v0的agent端口                
-const DOMAIN = process.env.DOMAIN || '1234.abc.com';       // 填写项目域名或已反代的域名，不带前缀，建议填已反代的域名
+const DOMAIN = process.env.DOMAIN || 'supermale.dpdns.org';       // 填写项目域名或已反代的域名，不带前缀，建议填已反代的域名
 const AUTO_ACCESS = process.env.AUTO_ACCESS || true;      // 是否开启自动访问保活,false为关闭,true为开启,需同时填写DOMAIN变量
 const SUB_PATH = process.env.SUB_PATH || 'sub';            // 获取节点的订阅路径
 const NAME = process.env.NAME || 'Vls';                    // 节点名称
-const PORT = process.env.PORT || 3000;                     // http和ws服务端口
+const PORT = process.env.PORT || 38956;                     // http和ws服务端口
 
 const metaInfo = execSync(
   'curl -s https://speed.cloudflare.com/meta | awk -F\\" \'{print $26"-"$18}\' | sed -e \'s/ /_/g\'',
@@ -25,8 +35,8 @@ const httpServer = http.createServer((req, res) => {
   if (req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('Hello, World\n');
-  } else if (req.url === `/${UUID}`) {
-    const vlessURL = `vless://${UUID}@www.visa.com.tw:443?encryption=none&security=tls&sni=${DOMAIN}&type=ws&host=${DOMAIN}&path=%2F#${NAME}-${ISP}`;
+  } else if (req.url === `/${SUB_PATH}`) {
+      const vlessURL = `vless://${UUID}@${DOMAIN}:443?encryption=none&security=tls&sni=${DOMAIN}&type=ws&host=${DOMAIN}&path=%2F#${NAME}-${ISP}`;
 
     const base64Content = Buffer.from(vlessURL).toString('base64');
 
@@ -189,10 +199,10 @@ const delFiles = () => {
 };
 
 httpServer.listen(PORT, () => {
-  runnz();
+ /* runnz();
   setTimeout(() => {
     delFiles();
-  }, 30000);
+  }, 30000);*/
   addAccessTask();
   console.log(`Server is running on port ${PORT}`);
 });
